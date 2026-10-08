@@ -7,7 +7,7 @@ import { basename, join, resolve } from "node:path";
 import pc from "picocolors";
 
 /** GitHub template: org/repo 或 org/repo#branch */
-const TEMPLATE = "rinlay/rinlay";
+const TEMPLATE = "travzhang/template";
 
 const PROJECT_NAME_RE =
   /^(?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;

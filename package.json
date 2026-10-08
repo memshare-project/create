@@ -1,6 +1,6 @@
 {
   "name": "create-memshare",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create a new MemShare project",
   "type": "module",
   "bin": {
