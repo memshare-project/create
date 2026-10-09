@@ -6,8 +6,34 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import pc from "picocolors";
 
-/** GitHub template: org/repo 或 org/repo#branch */
-const TEMPLATE = "travzhang/template";
+/** GitHub template monorepo: org/repo */
+const TEMPLATE_REPO = "travzhang/template";
+
+const TEMPLATE_CHOICES = [
+  {
+    value: "admin",
+    label: "Admin",
+    hint: "React + TypeScript + Vite 管理后台",
+  },
+  {
+    value: "app",
+    label: "App",
+    hint: "Expo + React Native 移动端",
+  },
+  {
+    value: "full-stack",
+    label: "Full Stack",
+    hint: "全栈 MemShare 项目",
+  },
+] as const;
+
+type TemplateId = (typeof TEMPLATE_CHOICES)[number]["value"];
+
+const TEMPLATE_IDS = new Set<string>(TEMPLATE_CHOICES.map((t) => t.value));
+
+function isTemplateId(value: string): value is TemplateId {
+  return TEMPLATE_IDS.has(value);
+}
 
 const PROJECT_NAME_RE =
   /^(?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
@@ -67,6 +93,36 @@ async function main(): Promise<void> {
     projectName = answer.trim();
   }
 
+  const argTemplate = process.argv[3]?.trim();
+
+  let templateId: TemplateId;
+
+  if (argTemplate) {
+    if (!isTemplateId(argTemplate)) {
+      p.cancel(
+        `无效的模板: ${argTemplate}（可选: ${TEMPLATE_CHOICES.map((t) => t.value).join(", ")}）`,
+      );
+      process.exit(1);
+    }
+    templateId = argTemplate;
+  } else {
+    const templateAnswer = await p.select({
+      message: "选择项目模板？",
+      options: TEMPLATE_CHOICES.map((t) => ({
+        value: t.value,
+        label: t.label,
+        hint: t.hint,
+      })),
+    });
+
+    if (p.isCancel(templateAnswer)) {
+      p.cancel("已取消");
+      process.exit(0);
+    }
+
+    templateId = templateAnswer;
+  }
+
   const targetDir =
     argName === "." ? process.cwd() : resolve(process.cwd(), toDirName(projectName));
 
@@ -81,14 +137,16 @@ async function main(): Promise<void> {
   }
 
   const spinner = p.spinner();
-  spinner.start("正在下载模板…");
+  const templateLabel =
+    TEMPLATE_CHOICES.find((t) => t.value === templateId)?.label ?? templateId;
+  spinner.start(`正在下载模板 ${templateLabel}…`);
 
   try {
     if (argName !== "." && !existsSync(targetDir)) {
       await mkdir(targetDir, { recursive: true });
     }
 
-    await downloadTemplate(`gh:${TEMPLATE}`, {
+    await downloadTemplate(`gh:${TEMPLATE_REPO}/${templateId}`, {
       dir: targetDir,
       force: true,
     });
